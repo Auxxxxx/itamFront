@@ -9,6 +9,7 @@ export class ApiError extends Error {
   }
 }
 
+// Backend service URL
 const API_BASE_URL = 'http://109.73.198.186:8000'
 
 // Generic API client for service communication
@@ -23,22 +24,78 @@ function createApiClient(baseUrl: string = API_BASE_URL) {
       ...options.headers,
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new ApiError(
-        data.message || 'Something went wrong',
-        response.status,
-        data.code
-      )
+    console.log(`API Request: ${options.method || 'GET'} ${url}`)
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      })
+      
+      console.log(`API Response headers:`, Object.fromEntries([...response.headers.entries()]))
+      
+      let data
+      const contentType = response.headers.get('content-type')
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json()
+          console.log(`API JSON Response:`, data)
+        } catch (e) {
+          console.error('Error parsing JSON response:', e)
+          const text = await response.text()
+          console.log(`Failed JSON parse, raw response:`, text)
+          data = null
+        }
+      } else {
+        const text = await response.text()
+        console.log(`API Text Response:`, text)
+        
+        // Try to parse as JSON anyway, sometimes servers send JSON without correct content-type
+        try {
+          data = JSON.parse(text)
+          console.log(`Parsed text as JSON:`, data)
+        } catch (e) {
+          console.log(`Could not parse as JSON, using text`)
+          data = text
+        }
+      }
+      
+      console.log(`API Response status: ${response.status}`, 
+                  typeof data === 'object' ? 'Data structure: ' + (Array.isArray(data) ? 'Array' : 'Object') : 'Raw data')
+      
+      if (!response.ok) {
+        throw new ApiError(
+          typeof data === 'object' && data?.message ? data.message : 'Что-то пошло не так',
+          response.status,
+          typeof data === 'object' && data?.code ? data.code : undefined
+        )
+      }
+      
+      // If we're expecting an array and got an object with data property that's an array,
+      // return that directly (common API pattern)
+      if (typeof data === 'object' && !Array.isArray(data)) {
+        // Check for data array property (common pattern)
+        if (Array.isArray(data.data)) {
+          console.log('Returning data.data array from response')
+          return data.data as unknown as T
+        }
+        
+        // Check for hackathons array property (specific to this API)
+        if (Array.isArray(data.hackathons)) {
+          console.log('Returning data.hackathons array from response')
+          return data.hackathons as unknown as T
+        }
+      }
+      
+      return data as T
+    } catch (error) {
+      console.error(`API Error for ${url}:`, error)
+      if (error instanceof ApiError) {
+        throw error
+      }
+      throw new ApiError('Ошибка сети или сервера', 500)
     }
-
-    return data as T
   }
 
   return {
@@ -59,4 +116,7 @@ function createApiClient(baseUrl: string = API_BASE_URL) {
 }
 
 // Default API client
-export const apiClient = createApiClient() 
+export const apiClient = createApiClient()
+
+// Hackathon service client
+export const hackathonApiClient = createApiClient(`${API_BASE_URL}`) 

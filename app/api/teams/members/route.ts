@@ -4,23 +4,23 @@ import { NextRequest, NextResponse } from "next/server"
 const mockTeams = [
   {
     id: "1",
-    name: "Blockchain Innovators",
-    description: "We're building a decentralized solution for supply chain management.",
+    name: "Блокчейн Новаторы",
+    description: "Мы создаем децентрализованное решение для управления цепочками поставок.",
     hackathonId: "1",
     members: [
-      { id: "user1", name: "John Doe", email: "john@example.com" },
-      { id: "user2", name: "Jane Smith", email: "jane@example.com" }
+      { id: "user1", name: "Иван Иванов", email: "ivan@example.com" },
+      { id: "user2", name: "Мария Петрова", email: "maria@example.com" }
     ],
     leaderId: "user1"
   },
   {
     id: "2",
-    name: "AI Solutions",
-    description: "Developing an AI-powered assistant for healthcare professionals.",
+    name: "ИИ Решения",
+    description: "Разрабатываем ИИ-помощника для медицинских работников.",
     hackathonId: "2",
     members: [
-      { id: "user1", name: "John Doe", email: "john@example.com" },
-      { id: "user3", name: "Bob Johnson", email: "bob@example.com" }
+      { id: "user1", name: "Иван Иванов", email: "ivan@example.com" },
+      { id: "user3", name: "Алексей Сидоров", email: "alex@example.com" }
     ],
     leaderId: "user1"
   }
@@ -28,10 +28,10 @@ const mockTeams = [
 
 // Mock users data for development
 const mockUsers = [
-  { id: "user1", name: "John Doe", email: "john@example.com" },
-  { id: "user2", name: "Jane Smith", email: "jane@example.com" },
-  { id: "user3", name: "Bob Johnson", email: "bob@example.com" },
-  { id: "user4", name: "Alice Brown", email: "alice@example.com" }
+  { id: "user1", name: "Иван Иванов", email: "ivan@example.com" },
+  { id: "user2", name: "Мария Петрова", email: "maria@example.com" },
+  { id: "user3", name: "Алексей Сидоров", email: "alex@example.com" },
+  { id: "user4", name: "Екатерина Смирнова", email: "kate@example.com" }
 ]
 
 export async function POST(request: NextRequest) {
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     // Validate the request body
     if (!body.teamId || !body.userId) {
       return NextResponse.json(
-        { message: "Team ID and User ID are required" },
+        { message: "Требуются ID команды и ID пользователя" },
         { status: 400 }
       )
     }
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     
     if (teamIndex === -1) {
       return NextResponse.json(
-        { message: "Team not found" },
+        { message: "Команда не найдена" },
         { status: 404 }
       )
     }
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     
     if (!user) {
       return NextResponse.json(
-        { message: "User not found" },
+        { message: "Пользователь не найден" },
         { status: 404 }
       )
     }
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     
     if (isMember) {
       return NextResponse.json(
-        { message: "User is already a member of this team" },
+        { message: "Пользователь уже является членом команды" },
         { status: 400 }
       )
     }
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error adding member to team:", error)
     return NextResponse.json(
-      { message: "Failed to add member to team" },
+      { message: "Не удалось добавить участника в команду" },
       { status: 500 }
     )
   }

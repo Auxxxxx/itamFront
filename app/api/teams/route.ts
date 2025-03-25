@@ -4,23 +4,23 @@ import { NextRequest, NextResponse } from "next/server"
 const mockTeams = [
   {
     id: "1",
-    name: "Blockchain Innovators",
-    description: "We're building a decentralized solution for supply chain management.",
+    name: "Блокчейн Новаторы",
+    description: "Мы создаем децентрализованное решение для управления цепочками поставок.",
     hackathonId: "1",
     members: [
-      { id: "user1", name: "John Doe", email: "john@example.com" },
-      { id: "user2", name: "Jane Smith", email: "jane@example.com" }
+      { id: "user1", name: "Иван Иванов", email: "ivan@example.com" },
+      { id: "user2", name: "Мария Петрова", email: "maria@example.com" }
     ],
     leaderId: "user1"
   },
   {
     id: "2",
-    name: "AI Solutions",
-    description: "Developing an AI-powered assistant for healthcare professionals.",
+    name: "ИИ Решения",
+    description: "Разрабатываем ИИ-помощника для медицинских работников.",
     hackathonId: "2",
     members: [
-      { id: "user1", name: "John Doe", email: "john@example.com" },
-      { id: "user3", name: "Bob Johnson", email: "bob@example.com" }
+      { id: "user1", name: "Иван Иванов", email: "ivan@example.com" },
+      { id: "user3", name: "Алексей Сидоров", email: "alex@example.com" }
     ],
     leaderId: "user1"
   }
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     
     if (!userId) {
       return NextResponse.json(
-        { message: "User ID is required" },
+        { message: "Требуется ID пользователя" },
         { status: 400 }
       )
     }
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error fetching teams:", error)
     return NextResponse.json(
-      { message: "Failed to fetch teams" },
+      { message: "Не удалось загрузить команды" },
       { status: 500 }
     )
   }
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     // Validate the request body
     if (!body.name || !body.description || !body.hackathonId) {
       return NextResponse.json(
-        { message: "Missing required fields" },
+        { message: "Отсутствуют необходимые поля" },
         { status: 400 }
       )
     }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       description: body.description,
       hackathonId: body.hackathonId,
       members: [
-        { id: userId, name: "John Doe", email: "john@example.com" } // We're assuming this is the user creating the team
+        { id: userId, name: "Иван Иванов", email: "ivan@example.com" } // We're assuming this is the user creating the team
       ],
       leaderId: userId
     }
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error creating team:", error)
     return NextResponse.json(
-      { message: "Failed to create team" },
+      { message: "Не удалось создать команду" },
       { status: 500 }
     )
   }

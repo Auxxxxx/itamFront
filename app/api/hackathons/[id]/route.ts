@@ -4,29 +4,29 @@ import { NextRequest, NextResponse } from "next/server"
 const mockHackathons = [
   {
     id: "1",
-    name: "Blockchain Innovation Challenge",
-    description: "Build innovative blockchain solutions for real-world problems.",
+    name: "Блокчейн Инновации",
+    description: "Создайте инновационные блокчейн-решения для реальных проблем.",
     startDate: "2024-01-15T00:00:00Z",
     endDate: "2024-01-17T00:00:00Z",
-    location: "San Francisco, CA",
+    location: "Москва, Россия",
     status: "upcoming"
   },
   {
     id: "2",
-    name: "AI & Machine Learning Hackathon",
-    description: "Develop intelligent applications using AI and machine learning technologies.",
+    name: "ИИ и Машинное Обучение",
+    description: "Разработайте интеллектуальные приложения с использованием технологий ИИ и машинного обучения.",
     startDate: "2024-02-10T00:00:00Z",
     endDate: "2024-02-12T00:00:00Z",
-    location: "Online",
+    location: "Онлайн",
     status: "upcoming"
   },
   {
     id: "3",
-    name: "Web3 Development Summit",
-    description: "Create decentralized applications for the next generation of the web.",
+    name: "Web3 Разработка",
+    description: "Создайте децентрализованные приложения для нового поколения веба.",
     startDate: "2023-11-05T00:00:00Z",
     endDate: "2023-11-07T00:00:00Z",
-    location: "Berlin, Germany",
+    location: "Санкт-Петербург, Россия",
     status: "completed"
   }
 ]
@@ -40,7 +40,7 @@ export async function GET(
     
     if (!hackathon) {
       return NextResponse.json(
-        { message: "Hackathon not found" },
+        { message: "Хакатон не найден" },
         { status: 404 }
       )
     }
@@ -49,7 +49,7 @@ export async function GET(
   } catch (error) {
     console.error(`Error fetching hackathon ${params.id}:`, error)
     return NextResponse.json(
-      { message: "Failed to fetch hackathon" },
+      { message: "Не удалось загрузить хакатон" },
       { status: 500 }
     )
   }

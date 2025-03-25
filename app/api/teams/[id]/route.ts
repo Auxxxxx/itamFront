@@ -4,23 +4,23 @@ import { NextRequest, NextResponse } from "next/server"
 const mockTeams = [
   {
     id: "1",
-    name: "Blockchain Innovators",
-    description: "We're building a decentralized solution for supply chain management.",
+    name: "Блокчейн Новаторы",
+    description: "Мы создаем децентрализованное решение для управления цепочками поставок.",
     hackathonId: "1",
     members: [
-      { id: "user1", name: "John Doe", email: "john@example.com" },
-      { id: "user2", name: "Jane Smith", email: "jane@example.com" }
+      { id: "user1", name: "Иван Иванов", email: "ivan@example.com" },
+      { id: "user2", name: "Мария Петрова", email: "maria@example.com" }
     ],
     leaderId: "user1"
   },
   {
     id: "2",
-    name: "AI Solutions",
-    description: "Developing an AI-powered assistant for healthcare professionals.",
+    name: "ИИ Решения",
+    description: "Разрабатываем ИИ-помощника для медицинских работников.",
     hackathonId: "2",
     members: [
-      { id: "user1", name: "John Doe", email: "john@example.com" },
-      { id: "user3", name: "Bob Johnson", email: "bob@example.com" }
+      { id: "user1", name: "Иван Иванов", email: "ivan@example.com" },
+      { id: "user3", name: "Алексей Сидоров", email: "alex@example.com" }
     ],
     leaderId: "user1"
   }
@@ -35,7 +35,7 @@ export async function GET(
     
     if (!team) {
       return NextResponse.json(
-        { message: "Team not found" },
+        { message: "Команда не найдена" },
         { status: 404 }
       )
     }
@@ -44,5 +44,9 @@ export async function GET(
   } catch (error) {
     console.error(`Error fetching team ${params.id}:`, error)
     return NextResponse.json(
-      { message: "Failed to fetch team" },
+      { message: "Не удалось загрузить команду" },
+      { status: 500 }
+    )
+  }
+}
  
