@@ -7,7 +7,7 @@ export interface ApiHackathon {
   start_of_hack: string
   end_of_hack: string
   amount_money: number
-  type: 'online' | 'offline' | 'hybrid'
+  type: string
 }
 
 export interface Hackathon {
@@ -17,7 +17,8 @@ export interface Hackathon {
   startDate: string
   endDate: string
   location: string
-  status: 'upcoming' | 'active' | 'completed'
+  status: 'upcoming' | 'active' | 'completed' | string
+  prize: number
 }
 
 // Convert API response format to our internal format
@@ -45,6 +46,7 @@ export function mapApiHackathonToHackathon(apiHackathon: ApiHackathon): Hackatho
     location: apiHackathon.type === 'online' ? 'Онлайн' : 
               apiHackathon.type === 'offline' ? 'Оффлайн' : 
               'Гибридный формат',
-    status
+    status,
+    prize: apiHackathon.amount_money
   };
 } 

@@ -43,11 +43,24 @@ export default function CreateTeamPage() {
     setError(null)
     
     try {
-      if (!formData.name || !formData.description || !formData.hackathonId) {
-        throw new Error("Пожалуйста, заполните все поля")
+      if (!formData.name) {
+        throw new Error("Пожалуйста, введите название команды")
       }
       
-      await createTeam(formData)
+      // Get user ID from localStorage
+      const userProfileId = localStorage.getItem("user_profile.ID")
+      if (!userProfileId) {
+        router.push("/login")
+        return
+      }
+      
+      // Create simplified payload
+      const teamPayload = {
+        name: formData.name,
+        ownerID: userProfileId
+      }
+      
+      await createTeam(teamPayload)
       setSuccess(true)
       
       // Navigate to teams list after a short delay
@@ -93,42 +106,6 @@ export default function CreateTeamPage() {
                 placeholder="Введите название команды"
                 required
               />
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="description" className="block text-sm font-medium mb-1">
-                Описание команды*
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded-md h-32"
-                placeholder="Опишите цели и задачи вашей команды"
-                required
-              />
-            </div>
-            
-            <div className="mb-6">
-              <label htmlFor="hackathonId" className="block text-sm font-medium mb-1">
-                Хакатон*
-              </label>
-              <select
-                id="hackathonId"
-                name="hackathonId"
-                value={formData.hackathonId}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded-md"
-                required
-              >
-                <option value="">Выберите хакатон</option>
-                {hackathons.map(hackathon => (
-                  <option key={hackathon.id} value={hackathon.id}>
-                    {hackathon.name}
-                  </option>
-                ))}
-              </select>
             </div>
             
             <div className="flex items-center justify-between">

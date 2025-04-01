@@ -1,16 +1,18 @@
 import { hackathonApiClient } from './api-client'
+import { ApiError } from './api-client'
 import type { Team } from '../types/team'
 
 export async function getTeams(): Promise<Team[]> {
   try {
-    const userId = localStorage.getItem("userId")
-    if (!userId) {
-      console.warn("No userId found, returning empty teams array")
+    // Get current user ID from user_profile.ID in localStorage
+    const userProfile = typeof window !== 'undefined' ? localStorage.getItem("user_profile.ID") : null
+    if (!userProfile) {
+      console.warn("No user_profile.ID found, returning empty teams array")
       return []
     }
     
-    console.log("Fetching teams for user ID:", userId)
-    const response = await hackathonApiClient.get<{ teams: Team[] } | Team[] | any>('/teams')
+    console.log("Fetching teams for user ID:", userProfile)
+    const response = await hackathonApiClient.get<{ teams: Team[] } | Team[] | any>('/team/')
     console.log("Raw teams response:", response)
     
     let teamsArray: any[] = []
@@ -31,17 +33,17 @@ export async function getTeams(): Promise<Team[]> {
       if (!team) return false;
       
       // Check if user is owner (handle different formats)
-      if (team.ownerID === userId || team.owner_id === userId) return true;
+      if (team.ownerID === userProfile || team.owner_id === userProfile) return true;
       
       // Check if user is in hacker_ids array
-      if (team.hacker_ids && Array.isArray(team.hacker_ids) && team.hacker_ids.includes(userId)) return true;
+      if (team.hacker_ids && Array.isArray(team.hacker_ids) && team.hacker_ids.includes(userProfile)) return true;
       
       // Check if user is in members array
       if (team.members && Array.isArray(team.members)) {
-        return team.members.some(member => 
+        return team.members.some((member: string | { id: string }) => 
           typeof member === 'string' 
-            ? member === userId 
-            : member.id === userId
+            ? member === userProfile 
+            : member.id === userProfile
         );
       }
       
@@ -58,7 +60,7 @@ export async function getTeams(): Promise<Team[]> {
       hackathonId: team.hackathon_id || team.hackathonId || '1', // Support both snake_case and camelCase
       members: team.hacker_ids ? team.hacker_ids.map((id: string) => ({
         id,
-        name: id === userId ? "Вы" : `Участник ${id.substring(0, 4)}`,
+        name: id === userProfile ? "Вы" : `Участник ${id.substring(0, 4)}`,
         role: id === (team.ownerID || team.owner_id) ? 'Владелец' : 'Участник'
       })) : [],
       // Add other properties from the API
@@ -66,15 +68,32 @@ export async function getTeams(): Promise<Team[]> {
       max_size: team.max_size,
       hacker_ids: team.hacker_ids
     }))
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Не удалось загрузить команды:', error)
+    
+    // Check for authentication error
+    if (error instanceof ApiError && error.status === 401) {
+      console.error('Authentication error: JWT token is invalid or missing')
+      // If we're in a browser environment, redirect to login
+      if (typeof window !== 'undefined') {
+        // Clear invalid token
+        localStorage.removeItem('auth_token')
+        // Redirect to login page
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+      }
+      throw new Error('Требуется авторизация. Пожалуйста, войдите в систему.')
+    }
+    
     throw new Error('Не удалось загрузить команды. Пожалуйста, попробуйте позже.')
   }
 }
 
 export async function getTeamById(id: string): Promise<Team> {
   try {
-    const response = await hackathonApiClient.get<Team | any>(`/teams/${id}`)
+    const response = await hackathonApiClient.get<Team | any>(`/team/${id}`)
+    
+    // Get current user ID
+    const userProfile = typeof window !== 'undefined' ? localStorage.getItem("user_profile.ID") : null
     
     // Handle response in the format returned by the API
     if (response && response.id && response.hacker_ids) {
@@ -85,7 +104,7 @@ export async function getTeamById(id: string): Promise<Team> {
         hackathonId: response.hackathonId || '1', // Default hackathonId if missing
         members: response.hacker_ids ? response.hacker_ids.map((id: string) => ({
           id,
-          name: `Участник ${id.substring(0, 4)}`,
+          name: userProfile && id === userProfile ? "Вы" : `Участник ${id.substring(0, 4)}`,
           role: id === response.ownerID ? 'Владелец' : 'Участник'
         })) : [],
         // Add other properties from the API
@@ -96,8 +115,22 @@ export async function getTeamById(id: string): Promise<Team> {
     }
     
     return response
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(`Не удалось загрузить команду ${id}:`, error)
+    
+    // Check for authentication error
+    if (error instanceof ApiError && error.status === 401) {
+      console.error('Authentication error: JWT token is invalid or missing')
+      // If we're in a browser environment, redirect to login
+      if (typeof window !== 'undefined') {
+        // Clear invalid token
+        localStorage.removeItem('auth_token')
+        // Redirect to login page
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+      }
+      throw new Error('Требуется авторизация. Пожалуйста, войдите в систему.')
+    }
+    
     throw new Error('Не удалось загрузить детали команды. Пожалуйста, попробуйте позже.')
   }
 }
@@ -107,64 +140,89 @@ export async function createTeam(teamData: Partial<Team>): Promise<Team> {
     console.log('Creating team with data:', teamData)
     
     // Ensure required fields are present
-    if (!teamData.name || !teamData.hackathonId || !teamData.ownerID) {
+    if (!teamData.name) {
       console.error('Missing required fields for team creation')
-      throw new Error('Не удалось создать команду: отсутствуют обязательные поля')
+      throw new Error('Не удалось создать команду: отсутствует название команды')
+    }
+    
+    // Get user_id from user_profile.ID in localStorage if not provided
+    let ownerId = teamData.ownerID
+    if (typeof window !== 'undefined' && !ownerId) {
+      const userProfile = localStorage.getItem('user_profile.ID')
+      if (!userProfile) {
+        throw new Error('Не удалось получить ID пользователя')
+      }
+      ownerId = userProfile
     }
     
     // Prepare payload in the format expected by the API
     const payload = {
       name: teamData.name,
-      hackathon_id: teamData.hackathonId, // Use snake_case for API
-      owner_id: teamData.ownerID, // Use snake_case for API
-      max_size: teamData.max_size || 5,
-      hacker_ids: teamData.hacker_ids || [teamData.ownerID],
-      description: teamData.description || teamData.name
+      ownerID: ownerId,
+      max_size: teamData.max_size || 5
     }
     
     console.log('Sending team creation request with payload:', payload)
-    const response = await hackathonApiClient.post<Team>('/teams', payload)
+    const response = await hackathonApiClient.post<Team>('/team/', payload)
     console.log('Team creation response:', response)
     
-    // If the API doesn't return proper ID, generate one for frontend use
     if (!response || !response.id) {
-      console.warn('API did not return team ID, generating temporary ID')
-      return {
-        id: `temp-${Date.now()}`,
-        name: teamData.name || '',
-        description: teamData.description || teamData.name || '',
-        hackathonId: teamData.hackathonId || '',
-        members: teamData.members || [],
-        ownerID: teamData.ownerID,
-        hacker_ids: teamData.hacker_ids || [teamData.ownerID || '']
-      }
+      throw new Error('Сервер вернул неверный ответ при создании команды')
     }
     
     return response
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Не удалось создать команду:', error)
-    // Try with a mock response for testing if the API is not working
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      console.log('Returning mock team in development mode')
-      return {
-        id: `temp-${Date.now()}`,
-        name: teamData.name || '',
-        description: teamData.description || teamData.name || '',
-        hackathonId: teamData.hackathonId || '',
-        members: teamData.members || [],
-        ownerID: teamData.ownerID,
-        hacker_ids: teamData.hacker_ids || [teamData.ownerID || '']
+    
+    // Check for authentication error
+    if (error instanceof ApiError && error.status === 401) {
+      console.error('Authentication error: JWT token is invalid or missing')
+      // If we're in a browser environment, redirect to login
+      if (typeof window !== 'undefined') {
+        // Clear invalid token
+        localStorage.removeItem('auth_token')
+        // Redirect to login page
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
       }
+      throw new Error('Требуется авторизация. Пожалуйста, войдите в систему.')
     }
+    
     throw new Error('Не удалось создать команду. Пожалуйста, проверьте данные и попробуйте снова.')
   }
 }
 
 export async function joinTeam(teamId: string, userId: string): Promise<void> {
   try {
-    await hackathonApiClient.post('/teams/members', { teamId, userId })
-  } catch (error) {
+    // If userId is not provided, try to get it from localStorage
+    let hackerId = userId
+    if (!hackerId && typeof window !== 'undefined') {
+      const userProfile = localStorage.getItem('user_profile.ID')
+      if (!userProfile) {
+        throw new Error('Не удалось получить ID пользователя')
+      }
+      hackerId = userProfile
+    }
+    
+    await hackathonApiClient.post('/team/add_hacker', { 
+      team_id: teamId, 
+      hacker_id: hackerId 
+    })
+  } catch (error: unknown) {
     console.error(`Не удалось присоединиться к команде ${teamId}:`, error)
+    
+    // Check for authentication error
+    if (error instanceof ApiError && error.status === 401) {
+      console.error('Authentication error: JWT token is invalid or missing')
+      // If we're in a browser environment, redirect to login
+      if (typeof window !== 'undefined') {
+        // Clear invalid token
+        localStorage.removeItem('auth_token')
+        // Redirect to login page
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+      }
+      throw new Error('Требуется авторизация. Пожалуйста, войдите в систему.')
+    }
+    
     throw new Error('Не удалось присоединиться к команде. Пожалуйста, попробуйте позже.')
   }
 }
@@ -178,8 +236,11 @@ export async function getTeamsByHackathonId(hackathonId: string): Promise<Team[]
     }
     
     console.log(`Fetching teams for hackathon ID: ${hackathonId}`)
-    const response = await hackathonApiClient.get<{ teams: Team[] } | Team[] | any>(`/teams/hackathon/${hackathonId}`)
+    const response = await hackathonApiClient.get<{ teams: Team[] } | Team[] | any>(`/team/`)
     console.log("Raw hackathon teams response:", response)
+    
+    // Get current user ID for displaying team members
+    const userProfile = typeof window !== 'undefined' ? localStorage.getItem("user_profile.ID") : null
     
     let teamsArray: any[] = []
     
@@ -192,27 +253,42 @@ export async function getTeamsByHackathonId(hackathonId: string): Promise<Team[]
       teamsArray = [response] // Handle case when single team is returned
     }
     
+    // Filter teams for this hackathon
+    const filteredTeams = teamsArray.filter(team => 
+      team.hackathon_id === hackathonId || team.hackathonId === hackathonId
+    )
+    
     // Map API response to our Team type
-    return teamsArray.map((team: any) => ({
+    return filteredTeams.map((team: any) => ({
       id: team.id,
       name: team.name,
       description: team.description || team.name,
       hackathonId: team.hackathon_id || team.hackathonId || hackathonId,
       members: team.hacker_ids ? team.hacker_ids.map((id: string) => ({
         id,
-        name: `Участник ${id.substring(0, 4)}`,
+        name: userProfile && id === userProfile ? "Вы" : `Участник ${id.substring(0, 4)}`,
         role: id === (team.ownerID || team.owner_id) ? 'Владелец' : 'Участник'
       })) : [],
       ownerID: team.ownerID || team.owner_id,
       max_size: team.max_size,
       hacker_ids: team.hacker_ids
     }))
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(`Не удалось загрузить команды для хакатона ${hackathonId}:`, error)
     
-    // Instead of propagating the error, return an empty array
-    // This handles the case when the API endpoint doesn't exist yet
-    console.log("Returning empty array due to API error")
-    return []
+    // Check for authentication error
+    if (error instanceof ApiError && error.status === 401) {
+      console.error('Authentication error: JWT token is invalid or missing')
+      // If we're in a browser environment, redirect to login
+      if (typeof window !== 'undefined') {
+        // Clear invalid token
+        localStorage.removeItem('auth_token')
+        // Redirect to login page
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+      }
+      throw new Error('Требуется авторизация. Пожалуйста, войдите в систему.')
+    }
+    
+    throw new Error('Не удалось загрузить команды хакатона. Пожалуйста, попробуйте позже.')
   }
 } 

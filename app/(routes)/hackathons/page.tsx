@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import type { Hackathon } from "@/app/lib/types/hackathon"
 import { getHackathons } from "@/app/lib/services/hackathon-service"
+import { upsertCurrentHacker } from "@/app/lib/services/hacker-service"
 
 export default function HackathonsPage() {
   const router = useRouter()
@@ -19,6 +20,17 @@ export default function HackathonsPage() {
     async function fetchHackathons() {
       try {
         console.log("Fetching hackathons...")
+        
+        // Register the current user as a hacker when they visit the hackathons tab
+        try {
+          console.log("Registering user as hacker...")
+          await upsertCurrentHacker()
+          console.log("User registered as hacker")
+        } catch (hackerError) {
+          console.error("Error registering user as hacker:", hackerError)
+          // Continue with hackathons fetching even if hacker registration fails
+        }
+        
         const startTime = Date.now()
         const data = await getHackathons()
         const endTime = Date.now()

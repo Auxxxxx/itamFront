@@ -17,8 +17,8 @@ import type { Hackathon } from "@/app/lib/types/hackathon"
 
 const formSchema = z.object({
   name: z.string().min(3, "Название команды должно содержать не менее 3 символов").max(50, "Название команды не должно превышать 50 символов"),
-  description: z.string().min(10, "Описание должно содержать не менее 10 символов").max(500, "Описание не должно превышать 500 символов"),
-  hackathonId: z.string().min(1, "ID хакатона обязателен")
+  description: z.string().optional(),
+  hackathonId: z.string().optional()
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -44,8 +44,8 @@ export default function CreateTeamPage() {
   
   // Check if user is logged in and fetch hackathon details
   useEffect(() => {
-    const userId = localStorage.getItem("userId")
-    if (!userId) {
+    const userProfileId = localStorage.getItem("user_profile.ID")
+    if (!userProfileId) {
       router.push("/login")
       return
     }
@@ -75,20 +75,18 @@ export default function CreateTeamPage() {
     setSubmitting(true)
     
     try {
-      const userId = localStorage.getItem("userId")
-      if (!userId) {
+      const userProfileId = localStorage.getItem("user_profile.ID")
+      if (!userProfileId) {
         router.push("/login")
         return
       }
       
       console.log("Submitting form with values:", values)
       
-      // Include userId in the team creation payload
+      // Only send the required fields
       const teamPayload = {
-        ...values,
-        ownerID: userId,
-        members: [{ id: userId, name: "Вы", role: "Владелец" }],
-        hacker_ids: [userId]
+        name: values.name,
+        ownerID: userProfileId
       }
       
       console.log("Sending team payload:", teamPayload)
@@ -96,13 +94,8 @@ export default function CreateTeamPage() {
       
       console.log("Team created successfully:", team)
       if (team.id) {
-        // Redirect to the teams list page and force a refresh
+        // Redirect to the teams list page
         router.push("/hackathons/teams")
-        
-        // Force reload after a short delay to ensure the new team is fetched
-        setTimeout(() => {
-          window.location.reload()
-        }, 500)
       } else {
         throw new Error("Не получен ID созданной команды")
       }
@@ -146,24 +139,6 @@ export default function CreateTeamPage() {
                     <FormLabel>Название команды</FormLabel>
                     <FormControl>
                       <Input placeholder="Введите название команды" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Описание</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Опишите вашу команду и идею проекта" 
-                        className="min-h-32"
-                        {...field} 
-                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
