@@ -6,6 +6,15 @@ import { useAuth } from '@/hooks/useAuth'
 import { EditProfileForm } from '@/app/components/profile/EditProfileForm'
 import Image from 'next/image'
 
+// Интерфейс для достижений
+interface Achievement {
+  id: number
+  title: string
+  description: string
+  date: string
+  imageUrl?: string
+}
+
 interface UserProfile {
   ID: number
   Name?: string
@@ -16,6 +25,7 @@ interface UserProfile {
   Specification?: string
   CreatedAt?: string
   UpdatedAt?: string
+  Achievements?: Achievement[]
 }
 
 export default function ProfilePage() {
@@ -25,37 +35,97 @@ export default function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [hasLocalChanges, setHasLocalChanges] = useState(false)
+
+  // Примеры достижений для демонстрации
+  const mockAchievements: Achievement[] = [
+    {
+      id: 1,
+      title: "Победитель хакатона ITAM 2023",
+      description: "Первое место в категории Web-разработка",
+      date: "2023-11-15",
+      imageUrl: "/images/achievement1.png"
+    },
+    {
+      id: 2,
+      title: "Активный участник ИТ-сообщества",
+      description: "Участие в более чем 5 мероприятиях",
+      date: "2023-12-01"
+    },
+    {
+      id: 3,
+      title: "Завершил курс Современные веб-технологии",
+      description: "Сертификат с отличием",
+      date: "2024-01-20"
+    }
+  ]
 
   useEffect(() => {
-    async function fetchProfile() {
-      if (!user) {
-        setProfileLoading(false)
-        return
-      }
+    // Проверяем наличие локальных изменений
+    const localProfileData = localStorage.getItem('user_profile')
+    setHasLocalChanges(!!localProfileData)
+  }, [profile])
 
-      try {
-        const token = localStorage.getItem('auth_token')
-        const response = await fetch('http://45.10.41.58:8080/api/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-
-        if (!response.ok) {
-          throw new Error('Не удалось получить данные профиля')
-        }
-
-        const data = await response.json()
-        console.log('Received profile data:', data)
-        setProfile(data)
-      } catch (err) {
-        setError('Ошибка при загрузке профиля')
-        console.error('Error fetching profile:', err)
-      } finally {
-        setProfileLoading(false)
-      }
+  async function fetchProfile() {
+    if (!user) {
+      setProfileLoading(false)
+      return
     }
 
+    try {
+      const token = localStorage.getItem('auth_token')
+      
+      // Проверяем наличие локальных данных
+      const localProfileData = localStorage.getItem('user_profile')
+      if (localProfileData) {
+        try {
+          const localProfile = JSON.parse(localProfileData)
+          setProfile(localProfile)
+          // Добавляем достижения (пока в локальном варианте)
+          if (!localProfile.Achievements) {
+            localProfile.Achievements = mockAchievements
+            setProfile(localProfile)
+          }
+          setHasLocalChanges(true)
+          setProfileLoading(false)
+          return
+        } catch (parseError) {
+          console.error('Error parsing local profile:', parseError)
+          localStorage.removeItem('user_profile')
+        }
+      }
+      
+      // Если нет локальных данных или произошла ошибка, загружаем с сервера
+      const response = await fetch('http://45.10.41.58:8080/api/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Не удалось получить данные профиля')
+      }
+
+      const data = await response.json()
+      console.log('Received profile data:', data)
+      
+      // Добавляем мок-достижения к профилю (только для демонстрации)
+      const profileWithAchievements = {
+        ...data,
+        Achievements: mockAchievements
+      }
+      
+      setProfile(profileWithAchievements)
+      setHasLocalChanges(false)
+    } catch (err) {
+      setError('Ошибка при загрузке профиля')
+      console.error('Error fetching profile:', err)
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  useEffect(() => {
     if (!isLoading) {
       if (!user) {
         // Если пользователь не авторизован, перенаправляем на страницу входа
@@ -67,8 +137,20 @@ export default function ProfilePage() {
   }, [user, isLoading, router])
 
   const handleProfileUpdate = (updatedProfile: UserProfile) => {
+    // Сохраняем достижения при обновлении профиля
+    if (profile?.Achievements) {
+      updatedProfile.Achievements = profile.Achievements
+    }
     setProfile(updatedProfile)
     setIsEditing(false)
+    setHasLocalChanges(true)
+  }
+  
+  // Функция для сброса локальных изменений
+  const resetLocalChanges = () => {
+    localStorage.removeItem('user_profile')
+    setHasLocalChanges(false)
+    fetchProfile()
   }
 
   if (isLoading || profileLoading) {
@@ -162,13 +244,65 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 
+                {/* Блок с достижениями */}
+                <div className="border-t mt-6 pt-6">
+                  <h3 className="text-lg font-semibold mb-4">Достижения</h3>
+                  
+                  {profile.Achievements && profile.Achievements.length > 0 ? (
+                    <div className="space-y-4">
+                      {profile.Achievements.map((achievement) => (
+                        <div key={achievement.id} className="bg-gray-50 p-4 rounded-lg">
+                          <div className="flex items-start">
+                            {achievement.imageUrl && (
+                              <div className="w-12 h-12 mr-4 flex-shrink-0">
+                                <div className="bg-blue-100 w-full h-full rounded-md flex items-center justify-center">
+                                  <span className="text-blue-600 text-xl">🏆</span>
+                                </div>
+                              </div>
+                            )}
+                            <div>
+                              <h4 className="font-medium text-gray-900">{achievement.title}</h4>
+                              <p className="text-sm text-gray-600">{achievement.description}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(achievement.date).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 text-center py-6">
+                      <p>У вас пока нет достижений</p>
+                      <p className="text-sm mt-2">Примите участие в хакатонах и мероприятиях, чтобы получить достижения</p>
+                    </div>
+                  )}
+                </div>
+                
                 <div className="mt-6">
-                  <button
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    Редактировать профиль
-                  </button>
+                  <div className="flex space-x-4">
+                    <button
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      Редактировать профиль
+                    </button>
+                    
+                    {hasLocalChanges && (
+                      <button
+                        className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                        onClick={resetLocalChanges}
+                      >
+                        Сбросить локальные изменения
+                      </button>
+                    )}
+                  </div>
+                  
+                  {hasLocalChanges && (
+                    <p className="text-xs text-blue-600 mt-2">
+                      * Изменения сохранены локально и могут быть потеряны при очистке кэша браузера
+                    </p>
+                  )}
                 </div>
               </div>
             )}

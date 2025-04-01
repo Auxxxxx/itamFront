@@ -43,28 +43,55 @@ export async function updateProfile(formData: FormData): Promise<ActionResponse>
       }
     }
 
-    // Здесь будет запрос к API для обновления профиля
-    // Пока API для обновления не упоминалось, сделаем заглушку
-    // В реальном приложении здесь должен быть запрос к API
-    
-    const mockResponse = {
-      ID: 1,
-      Name: name,
-      Email: email,
-      Telegram: telegram || null,
-      About: about || null,
-      Specification: specification || null,
-      PhotoURL: null
-    }
+    // Получаем текущий профиль
+    try {
+      const response = await fetch('http://45.10.41.58:8080/api/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-    return {
-      success: true,
-      data: mockResponse
+      if (!response.ok) {
+        return {
+          success: false,
+          error: 'Не удалось получить данные профиля'
+        };
+      }
+
+      const currentProfile = await response.json();
+      console.log('Current profile:', currentProfile);
+
+      // Создаем имитацию обновленного профиля
+      // Сохраняем все исходные данные и обновляем только те, которые изменились
+      const updatedProfile = {
+        ...currentProfile,
+        Name: name,
+        Email: email,
+        Telegram: telegram || currentProfile.Telegram,
+        About: about || currentProfile.About,
+        Specification: specification || currentProfile.Specification
+      };
+
+      console.log('Simulated updated profile:', updatedProfile);
+
+      // Отправляем обновленные данные обратно на клиент
+      // Данные будут сохранены в localStorage на стороне клиента
+      return {
+        success: true,
+        data: updatedProfile
+      };
+    } catch (fetchError) {
+      console.error('Error fetching profile:', fetchError);
+      return {
+        success: false,
+        error: 'Ошибка при получении данных профиля'
+      };
     }
   } catch (error) {
+    console.error('Error updating profile:', error);
     return {
       success: false,
       error: 'Произошла ошибка при обновлении профиля'
-    }
+    };
   }
 } 

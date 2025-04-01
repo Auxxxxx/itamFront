@@ -3,9 +3,14 @@
 import { useState, useEffect } from 'react'
 
 interface User {
-  id: number
-  name: string
-  email: string
+  ID: number
+  Name?: string
+  Email: string
+  Telegram?: string | null
+  PhotoURL?: string | null
+  About?: string | null
+  Specification?: string
+  // Добавим поля по мере необходимости
 }
 
 export function useAuth() {
@@ -24,9 +29,26 @@ export function useAuth() {
         return
       }
 
+      // Проверяем, есть ли локально сохраненные данные профиля
+      const localProfileData = localStorage.getItem('user_profile')
+      
+      if (localProfileData) {
+        try {
+          const localProfile = JSON.parse(localProfileData)
+          console.log("Using locally stored profile data:", localProfile);
+          setUser(localProfile)
+          setIsLoading(false)
+          return
+        } catch (parseError) {
+          console.error("Error parsing local profile data:", parseError);
+          // В случае ошибки парсинга, продолжаем с запросом к API
+          localStorage.removeItem('user_profile');
+        }
+      }
+
       const response = await fetch('http://45.10.41.58:8080/api/me', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`
         },
       })
 
@@ -37,13 +59,14 @@ export function useAuth() {
         localStorage.removeItem('auth_token')
         localStorage.removeItem('token_type')
         localStorage.removeItem('expires_in')
+        localStorage.removeItem('user_profile')
         setUser(null);
         setIsLoading(false)
         return
       }
 
       const data = await response.json()
-      console.log("User data received:", data);
+      console.log("User data received from API:", data);
       setUser(data)
     } catch (error) {
       console.error('Failed to fetch user:', error)

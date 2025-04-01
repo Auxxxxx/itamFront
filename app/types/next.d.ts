@@ -64,4 +64,28 @@ declare module 'next/server' {
     static rewrite(destination: string, init?: ResponseInit): NextResponse;
     static next(init?: ResponseInit): NextResponse;
   }
+}
+
+// Декларация типов для модулей Next.js
+declare module 'next/image' {
+  import { DetailedHTMLProps, ImgHTMLAttributes } from 'react'
+  
+  export interface ImageProps extends DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement> {
+    src: string
+    alt: string
+    width?: number
+    height?: number
+    fill?: boolean
+    loader?: any
+    quality?: number
+    priority?: boolean
+    loading?: 'lazy' | 'eager'
+    unoptimized?: boolean
+    placeholder?: 'blur' | 'empty'
+    blurDataURL?: string
+    className?: string
+    style?: React.CSSProperties
+  }
+  
+  export default function Image(props: ImageProps): JSX.Element
 } 

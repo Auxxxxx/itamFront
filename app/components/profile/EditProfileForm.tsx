@@ -27,16 +27,19 @@ export function EditProfileForm({ user, onUpdate, onCancel }: EditProfileFormPro
   const [specification, setSpecification] = useState(user.Specification || '')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
+    setSuccessMessage(null)
     setIsLoading(true)
 
     try {
       const token = localStorage.getItem('auth_token')
       if (!token) {
         setError('Требуется авторизация')
+        setIsLoading(false)
         return
       }
 
@@ -48,17 +51,29 @@ export function EditProfileForm({ user, onUpdate, onCancel }: EditProfileFormPro
       formData.append('about', about)
       formData.append('specification', specification)
 
+      console.log('Submitting form data:', {
+        name, email, telegram, about, specification
+      });
+
       const result = await updateProfile(formData)
+      console.log('Update result:', result);
 
       if (!result.success) {
         setError(result.error || 'Ошибка при обновлении профиля')
+        setIsLoading(false)
         return
       }
 
-      onUpdate(result.data)
+      // Сохраняем обновленные данные профиля в localStorage
+      localStorage.setItem('user_profile', JSON.stringify(result.data))
+
+      setSuccessMessage('Профиль успешно обновлен (изменения сохранены локально)')
+      setTimeout(() => {
+        onUpdate(result.data)
+      }, 2000) // Увеличенная задержка, чтобы пользователь успел прочитать сообщение
     } catch (err) {
+      console.error('Client-side error updating profile:', err)
       setError('Произошла ошибка при обновлении профиля')
-      console.error('Error updating profile:', err)
     } finally {
       setIsLoading(false)
     }
@@ -72,6 +87,12 @@ export function EditProfileForm({ user, onUpdate, onCancel }: EditProfileFormPro
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 rounded-md p-3 text-sm">
             {error}
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-600 rounded-md p-3 text-sm">
+            {successMessage}
           </div>
         )}
         

@@ -19,7 +19,6 @@ export function ServiceSelector() {
     { id: 'events', name: 'Мероприятия', path: '/events', active: false },
     { id: 'courses', name: 'Курсы', path: '/courses', active: false },
     { id: 'mentoring', name: 'Менторство', path: '/mentoring', active: false },
-    { id: 'profiles', name: 'Профили', path: '/profiles', active: false },
   ])
   
   useEffect(() => {
