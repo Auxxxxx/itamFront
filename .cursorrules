@@ -79,7 +79,8 @@ React/Next.js:
           return { success: false, error: error instanceof AppError ? error : appErrors.UNEXPECTED_ERROR, }
         }
       })
-    ```
+
+ ```
 
 Key Conventions:
 
@@ -90,4 +91,6 @@ Key Conventions:
   - Use 'use client' only for Web API access in small components.
   - Avoid using 'use client' for data fetching or state management.
 
+
 Refer to Next.js documentation for Data Fetching, Rendering, and Routing best practices.
+```
