@@ -17,7 +17,6 @@ export function HackathonTabs() {
   const [tabs, setTabs] = useState<HackathonTab[]>([
     { id: 'list', name: 'Список хакатонов', path: '/hackathons', active: false },
     { id: 'teams', name: 'Мои команды', path: '/hackathons/teams', active: false },
-    { id: 'create-team', name: 'Создать команду', path: '/hackathons/teams/create', active: false },
   ])
   
   useEffect(() => {

@@ -11,6 +11,7 @@ export class ApiError extends Error {
 
 // Backend service URL
 const API_BASE_URL = 'http://109.73.198.186:8000'
+const HACKATHON_API_BASE_URL = 'http://45.10.41.58:8000'
 
 // Generic API client for service communication
 function createApiClient(baseUrl: string = API_BASE_URL) {
@@ -21,10 +22,14 @@ function createApiClient(baseUrl: string = API_BASE_URL) {
     const url = `${baseUrl}${endpoint}`
     const headers = {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       ...options.headers,
     }
 
     console.log(`API Request: ${options.method || 'GET'} ${url}`)
+    if (options.body) {
+      console.log(`Request body: ${options.body}`)
+    }
     
     try {
       const response = await fetch(url, {
@@ -32,6 +37,7 @@ function createApiClient(baseUrl: string = API_BASE_URL) {
         headers,
       })
       
+      console.log(`API Response status: ${response.status}`)
       console.log(`API Response headers:`, Object.fromEntries([...response.headers.entries()]))
       
       let data
@@ -61,12 +67,25 @@ function createApiClient(baseUrl: string = API_BASE_URL) {
         }
       }
       
-      console.log(`API Response status: ${response.status}`, 
+      // Special handling for team creation success with empty response
+      if (response.ok && options.method === 'POST' && (endpoint === '/teams' || endpoint === '/team') && (!data || data === '')) {
+        console.log('Special case: Empty successful response for team creation')
+        // Return a skeleton successful response
+        return { success: true } as unknown as T
+      }
+      
+      console.log(`API Response processed:`, 
                   typeof data === 'object' ? 'Data structure: ' + (Array.isArray(data) ? 'Array' : 'Object') : 'Raw data')
       
       if (!response.ok) {
+        const errorMessage = typeof data === 'object' && data?.message 
+          ? data.message 
+          : typeof data === 'string' && data
+            ? data
+            : 'Что-то пошло не так'
+            
         throw new ApiError(
-          typeof data === 'object' && data?.message ? data.message : 'Что-то пошло не так',
+          errorMessage,
           response.status,
           typeof data === 'object' && data?.code ? data.code : undefined
         )
@@ -119,4 +138,4 @@ function createApiClient(baseUrl: string = API_BASE_URL) {
 export const apiClient = createApiClient()
 
 // Hackathon service client
-export const hackathonApiClient = createApiClient(`${API_BASE_URL}`) 
+export const hackathonApiClient = createApiClient(`${HACKATHON_API_BASE_URL}`) 
