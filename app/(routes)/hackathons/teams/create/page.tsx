@@ -48,10 +48,21 @@ export default function CreateTeamPage() {
       }
       
       // Get user ID from localStorage
-      const userProfileId = localStorage.getItem("user_profile.ID")
+      const userProfileStr = localStorage.getItem("user_profile")
+      if (!userProfileStr) {
+        throw new Error("Пользователь не авторизован")
+      }
+      
+      let userProfileId
+      try {
+        const userProfile = JSON.parse(userProfileStr)
+        userProfileId = userProfile.ID
+      } catch (err) {
+        throw new Error("Ошибка при получении ID пользователя")
+      }
+      
       if (!userProfileId) {
-        router.push("/login")
-        return
+        throw new Error("ID пользователя не найден")
       }
       
       // Create simplified payload

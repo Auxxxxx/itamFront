@@ -79,7 +79,7 @@ export default function EditTeamPage({ params }: { params: { id: string } }) {
       // In a real implementation, this would call an updateTeam API
       
       // Redirect back to team page
-      router.push(`/teams/${teamId}`)
+      router.push(`/hackathons/teams/${teamId}`)
     } catch (err) {
       setError("Не удалось обновить команду. Пожалуйста, попробуйте позже.")
       console.error(err)
@@ -97,7 +97,7 @@ export default function EditTeamPage({ params }: { params: { id: string } }) {
   
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <Link href={`/teams/${teamId}`} className="text-blue-600 hover:underline mb-4 inline-block">
+      <Link href={`/hackathons/teams/${teamId}`} className="text-blue-600 hover:underline mb-4 inline-block">
         ← Назад к команде
       </Link>
       
@@ -150,7 +150,7 @@ export default function EditTeamPage({ params }: { params: { id: string } }) {
               <div className="flex justify-end gap-4">
                 <Button
                   variant="outline"
-                  onClick={() => router.push(`/teams/${teamId}`)}
+                  onClick={() => router.push(`/hackathons/teams/${teamId}`)}
                   className="hover:bg-gray-100"
                 >
                   Отмена

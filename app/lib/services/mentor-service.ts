@@ -1,9 +1,8 @@
-import { apiClient, ApiError } from './api-client'
+import { mentorApiClient, ApiError } from './api-client'
 import type { Mentor, MentorTime, MentorTimeReservation, User } from '../types/mentor'
 
-// Mentorship API client
-const MENTOR_API_BASE_URL = 'http://45.10.41.58:8000'
-const mentorApiClient = apiClient
+// Using mentorApiClient from api-client.ts which already points to http://45.10.41.58:8001
+// This ensures proper CORS handling is consistent across all service calls
 
 export async function getMentors(): Promise<Mentor[]> {
   try {
