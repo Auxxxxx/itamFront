@@ -45,7 +45,7 @@ export async function register(formData: FormData): Promise<ActionResponse> {
       }
     }
 
-    const response = await fetch('http://45.10.41.58:8080/api/register', {
+    const response = await fetch('http://45.10.41.58:8000/api/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ export async function login(formData: FormData): Promise<ActionResponse> {
       }
     }
 
-    const response = await fetch('http://45.10.41.58:8080/api/login', {
+    const response = await fetch('http://45.10.41.58:8000/api/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

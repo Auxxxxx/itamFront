@@ -2,6 +2,7 @@
 
 import { z } from 'zod'
 import type { ActionResponse } from '@/app/types/actions'
+import { cookies } from 'next/headers'
 
 const updateProfileSchema = z.object({
   name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
@@ -14,11 +15,11 @@ const updateProfileSchema = z.object({
 export async function updateProfile(formData: FormData): Promise<ActionResponse> {
   try {
     // Эти данные должны быть получены на клиенте и переданы сюда
-    const token = formData.get('token') as string
+    const token = cookies().get('auth_token')?.value
     if (!token) {
       return {
         success: false,
-        error: 'Требуется авторизация'
+        error: 'Not authenticated'
       }
     }
 
@@ -45,7 +46,7 @@ export async function updateProfile(formData: FormData): Promise<ActionResponse>
 
     // Получаем текущий профиль
     try {
-      const response = await fetch('http://45.10.41.58:8080/api/me', {
+      const response = await fetch('http://45.10.41.58:8000/api/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

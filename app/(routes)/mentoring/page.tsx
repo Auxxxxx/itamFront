@@ -1,6 +1,24 @@
+"use client"
+
+import { useEffect } from "react"
 import Link from 'next/link'
+import { upsertCurrentHacker } from "@/app/lib/services/hacker-service"
 
 export default function MentoringPage() {
+  useEffect(() => {
+    // Register the current user as a hacker when they visit the mentoring tab
+    async function registerUserAsHacker() {
+      try {
+        await upsertCurrentHacker()
+        console.log("User registered as hacker from mentoring page")
+      } catch (error) {
+        console.error("Error registering user as hacker:", error)
+      }
+    }
+
+    registerUserAsHacker()
+  }, [])
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Менторство</h1>

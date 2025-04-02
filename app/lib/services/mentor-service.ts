@@ -2,7 +2,7 @@ import { apiClient, ApiError } from './api-client'
 import type { Mentor, MentorTime, MentorTimeReservation, User } from '../types/mentor'
 
 // Mentorship API client
-const MENTOR_API_BASE_URL = 'http://45.10.41.58:8001'
+const MENTOR_API_BASE_URL = 'http://45.10.41.58:8000'
 const mentorApiClient = apiClient
 
 export async function getMentors(): Promise<Mentor[]> {
