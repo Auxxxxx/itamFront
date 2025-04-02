@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { login } from '@/app/actions/auth'
+import { loginUser, getCurrentUser, saveAuthData } from '@/app/lib/services/auth-service'
 import type { FormEvent } from 'react'
 
 export default function LoginPage() {
@@ -16,24 +16,42 @@ export default function LoginPage() {
     setError(null)
     setIsLoading(true)
 
+    // Получаем данные из формы
     const formData = new FormData(event.currentTarget)
-    const result = await login(formData)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
 
-    if (!result.success) {
-      setError(result.error || 'Произошла ошибка при входе')
+    // Вызываем функцию авторизации из auth-service
+    const loginResult = await loginUser({ email, password })
+
+    if (!loginResult.success) {
+      setError(loginResult.error || 'Произошла ошибка при входе')
       setIsLoading(false)
       return
     }
 
-    console.log("Login successful:", result.data);
+    console.log("Login successful:", loginResult.data);
 
-    // Store token in localStorage
-    localStorage.setItem('auth_token', result.data.access_token)
-    localStorage.setItem('token_type', result.data.token_type)
-    localStorage.setItem('expires_in', result.data.expires_in.toString())
+    // Временно сохраняем токен для получения профиля пользователя
+    const token = loginResult.data.access_token;
 
-    // Dispatch event and then do a full page reload
-    window.dispatchEvent(new Event('authStateChanged'))
+    // Получаем данные пользователя
+    try {
+      const userProfileResult = await getCurrentUser(token);
+      
+      if (userProfileResult.success) {
+        // Сохраняем данные авторизации и профиля пользователя
+        saveAuthData(loginResult.data, userProfileResult.data);
+      } else {
+        // Сохраняем только данные токена, если не удалось получить профиль
+        saveAuthData(loginResult.data);
+        console.error('Failed to fetch user profile:', userProfileResult.error);
+      }
+    } catch (error) {
+      // В случае ошибки все равно сохраняем данные токена
+      saveAuthData(loginResult.data);
+      console.error('Error fetching user profile:', error);
+    }
     
     // Force a full page reload
     window.location.href = '/'

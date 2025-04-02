@@ -44,9 +44,9 @@ export async function updateProfile(formData: FormData): Promise<ActionResponse>
       }
     }
 
-    // Получаем текущий профиль
     try {
-      const response = await fetch('http://45.10.41.58:8000/api/me', {
+      // Используем правильный API для авторизации (порт 8080)
+      const response = await fetch('http://45.10.41.58:8080/api/users/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -62,8 +62,7 @@ export async function updateProfile(formData: FormData): Promise<ActionResponse>
       const currentProfile = await response.json();
       console.log('Current profile:', currentProfile);
 
-      // Создаем имитацию обновленного профиля
-      // Сохраняем все исходные данные и обновляем только те, которые изменились
+      // Создаем обновленный профиль
       const updatedProfile = {
         ...currentProfile,
         Name: name,
@@ -73,10 +72,9 @@ export async function updateProfile(formData: FormData): Promise<ActionResponse>
         Specification: specification || currentProfile.Specification
       };
 
-      console.log('Simulated updated profile:', updatedProfile);
+      console.log('Updated profile:', updatedProfile);
 
       // Отправляем обновленные данные обратно на клиент
-      // Данные будут сохранены в localStorage на стороне клиента
       return {
         success: true,
         data: updatedProfile
@@ -85,14 +83,14 @@ export async function updateProfile(formData: FormData): Promise<ActionResponse>
       console.error('Error fetching profile:', fetchError);
       return {
         success: false,
-        error: 'Ошибка при получении данных профиля'
+        error: 'Ошибка при получении данных профиля: ' + (fetchError instanceof Error ? fetchError.message : String(fetchError))
       };
     }
   } catch (error) {
     console.error('Error updating profile:', error);
     return {
       success: false,
-      error: 'Произошла ошибка при обновлении профиля'
+      error: 'Произошла ошибка при обновлении профиля: ' + (error instanceof Error ? error.message : String(error))
     };
   }
 } 
