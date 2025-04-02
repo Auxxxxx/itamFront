@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { register } from '@/app/actions/auth'
+import { registerUser } from '@/app/lib/services/auth-service'
 import type { FormEvent } from 'react'
 
 export default function RegisterPage() {
@@ -16,11 +16,25 @@ export default function RegisterPage() {
     setError(null)
     setIsLoading(true)
 
+    // Получаем данные из формы
     const formData = new FormData(event.currentTarget)
-    const result = await register(formData)
+    const email = formData.get('email') as string
+    const name = formData.get('name') as string
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirmPassword') as string
 
-    if (!result.success) {
-      setError(result.error || 'Произошла ошибка при регистрации')
+    // Проверяем совпадение паролей
+    if (password !== confirmPassword) {
+      setError('Пароли не совпадают')
+      setIsLoading(false)
+      return
+    }
+
+    // Вызываем функцию регистрации из auth-service
+    const registerResult = await registerUser({ email, name, password })
+
+    if (!registerResult.success) {
+      setError(registerResult.error || 'Произошла ошибка при регистрации')
       setIsLoading(false)
       return
     }

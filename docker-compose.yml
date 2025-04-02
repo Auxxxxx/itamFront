@@ -2,9 +2,7 @@ version: '3'
 
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: auxxxxx/itam_platform202504030148
     ports:
       - "3000:3000"
     volumes:

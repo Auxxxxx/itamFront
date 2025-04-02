@@ -78,7 +78,7 @@ export default function ProfilePage() {
       if (!token) return null
       
       // Call API to get latest user data
-      const response = await fetch('http://45.10.41.58:8000/api/me', {
+      const response = await fetch('http://45.10.41.58:8080/api/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

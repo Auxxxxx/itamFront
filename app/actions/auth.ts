@@ -45,32 +45,63 @@ export async function register(formData: FormData): Promise<ActionResponse> {
       }
     }
 
-    const response = await fetch('http://45.10.41.58:8000/api/register', {
+    console.log('Отправка запроса на регистрацию:', {
+      url: 'http://45.10.41.58:8080/api/users/register',
+      body: {
+        email,
+        name,
+        password,
+      }
+    });
+
+    const response = await fetch('http://45.10.41.58:8080/api/users/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify({
         email,
         name,
         password,
       }),
+      // Нельзя использовать credentials: 'include', так как сервер не поддерживает
+      cache: 'no-store',
     })
 
+    console.log('Ответ сервера регистрации:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries([...response.headers.entries()]),
+    });
+
     if (!response.ok) {
-      const error = await response.json()
+      const errorText = await response.text();
+      let errorMessage = 'Ошибка при регистрации';
+      
+      try {
+        const error = JSON.parse(errorText);
+        errorMessage = error.message || errorMessage;
+      } catch (e) {
+        console.error('Не удалось распарсить ошибку:', errorText);
+      }
+      
       return {
         success: false,
-        error: error.message || 'Ошибка при регистрации',
+        error: errorMessage,
       }
     }
 
     const data = await response.json()
+    console.log('Успешная регистрация:', data);
+    
     return {
       success: true,
       data,
     }
   } catch (error) {
+    console.error('Ошибка при регистрации:', error);
+    
     return {
       success: false,
       error: 'Произошла ошибка при регистрации',
@@ -95,7 +126,7 @@ export async function login(formData: FormData): Promise<ActionResponse> {
       }
     }
 
-    const response = await fetch('http://45.10.41.58:8000/api/login', {
+    const response = await fetch('http://45.10.41.58:8080/api/users/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
