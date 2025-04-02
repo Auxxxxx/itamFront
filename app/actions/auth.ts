@@ -6,7 +6,7 @@ import type { ActionResponse } from '@/app/types/actions'
 const registerSchema = z.object({
   email: z.string().email('Некорректный email'),
   name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
-  password: z.string().min(6, 'Пароль должен содержать минимум 6 символов'),
+  password: z.string().min(8, 'Пароль должен содержать минимум 8 символов'),
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Пароли не совпадают',
@@ -15,7 +15,7 @@ const registerSchema = z.object({
 
 const loginSchema = z.object({
   email: z.string().email('Некорректный email'),
-  password: z.string().min(6, 'Пароль должен содержать минимум 6 символов')
+  password: z.string().min(8, 'Пароль должен содержать минимум 8 символов')
 })
 
 interface AuthResponse {
@@ -45,7 +45,7 @@ export async function register(formData: FormData): Promise<ActionResponse> {
       }
     }
 
-    const response = await fetch('http://45.10.41.58:8080/api/register', {
+    const response = await fetch('http://45.10.41.58:8000/api/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ export async function login(formData: FormData): Promise<ActionResponse> {
       }
     }
 
-    const response = await fetch('http://45.10.41.58:8080/api/login', {
+    const response = await fetch('http://45.10.41.58:8000/api/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

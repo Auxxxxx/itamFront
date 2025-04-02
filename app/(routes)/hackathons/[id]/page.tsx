@@ -130,7 +130,7 @@ export default function HackathonDetailPage({ params }: { params: { id: string }
 
         <div className="mt-8 flex flex-wrap gap-4">
           <Link
-            href={`/teams/create?hackathonId=${hackathon.id}`}
+            href={`/hackathons/teams/create?hackathonId=${hackathon.id}`}
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg inline-block flex items-center"
           >
             <PlusCircle size={18} className="mr-2" />
@@ -167,7 +167,7 @@ export default function HackathonDetailPage({ params }: { params: { id: string }
           <div className="text-center py-6">
             <p className="text-gray-500 mb-4">Пока нет зарегистрированных команд для этого хакатона</p>
             <Link
-              href={`/teams/create?hackathonId=${hackathon.id}`}
+              href={`/hackathons/teams/create?hackathonId=${hackathon.id}`}
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md inline-flex items-center"
             >
               <PlusCircle size={18} className="mr-1" />

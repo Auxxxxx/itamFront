@@ -54,7 +54,7 @@ export function HackathonCard({ hackathon }: HackathonCardProps) {
         <Link href={`/hackathons/${id}`} passHref>
           <Button variant="outline">View Details</Button>
         </Link>
-        <Link href={`/teams/create?hackathonId=${id}`} passHref>
+        <Link href={`/hackathons/teams/create?hackathonId=${id}`} passHref>
           <Button>Create Team</Button>
         </Link>
       </CardFooter>

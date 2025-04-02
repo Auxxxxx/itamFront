@@ -90,6 +90,7 @@ export default function RegisterPage() {
                 required
                 disabled={isLoading}
               />
+              <p className="text-xs text-gray-500 mt-1">Пароль должен содержать минимум 8 символов</p>
             </div>
 
             <div>

@@ -1,218 +1,405 @@
 import { hackathonApiClient } from './api-client'
+import { ApiError } from './api-client'
 import type { Team } from '../types/team'
 
+// Constants
+const API_ERROR_MESSAGES = {
+  AUTH: 'Требуется авторизация. Пожалуйста, войдите в систему.',
+  TEAMS_FETCH: 'Не удалось загрузить команды. Пожалуйста, попробуйте позже.',
+  TEAM_FETCH: 'Не удалось загрузить детали команды. Пожалуйста, попробуйте позже.',
+  TEAM_CREATE: 'Не удалось создать команду. Пожалуйста, проверьте данные и попробуйте снова.',
+  TEAM_JOIN: 'Не удалось присоединиться к команде. Пожалуйста, попробуйте позже.',
+  HACKATHON_TEAMS_FETCH: 'Не удалось загрузить команды хакатона. Пожалуйста, попробуйте позже.',
+  USER_ID_MISSING: 'Не удалось получить ID пользователя',
+  INVALID_RESPONSE: 'Неверный формат ответа от сервера',
+  TEAM_NAME_MISSING: 'Не удалось создать команду: отсутствует название команды',
+  TEAM_ID_REQUIRED: 'Team ID is required'
+}
+
+// External API base URL
+const HACKATHON_API_URL = 'http://45.10.41.58:8000'
+
+// Types for API responses and requests
+interface TeamResponse {
+  id: string
+  name: string
+  description?: string
+  hackathon_id?: string
+  hackathonId?: string
+  ownerID?: string
+  owner_id?: string
+  max_size?: number
+  hacker_ids?: string[]
+  members?: Array<string | { id: string }>
+}
+
+interface TeamCreatePayload {
+  name: string
+  max_size?: number
+}
+
+interface AddHackerPayload {
+  team_id: string
+  hacker_id: string
+}
+
+// Helper function to get user profile ID from localStorage
+function getUserProfileId(): string | null {
+  if (typeof window === 'undefined') return null
+  
+  try {
+    const userProfileStr = localStorage.getItem('user_profile')
+    if (!userProfileStr) return null
+    
+    const userProfile = JSON.parse(userProfileStr)
+    return userProfile?.ID || null
+  } catch (error) {
+    console.error('Error parsing user profile from localStorage:', error)
+    return null
+  }
+}
+
+// Helper function to handle authentication errors
+function handleAuthError(error: unknown): never {
+  console.error('Authentication error: JWT token is invalid or missing')
+  
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('auth_token')
+    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+  }
+  
+  throw new Error(API_ERROR_MESSAGES.AUTH)
+}
+
+// Helper function to get authorization headers
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') return {}
+  
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  }
+  
+  // Try access_token (OAuth style)
+  const accessToken = localStorage.getItem('access_token')
+  if (accessToken) {
+    console.log("Adding Bearer token from access_token")
+    headers['Authorization'] = `Bearer ${accessToken}`
+  }
+  
+  // Try auth_token (JWT style) as fallback
+  if (!accessToken) {
+    const authToken = localStorage.getItem('auth_token')
+    if (authToken) {
+      console.log("Adding Bearer token from auth_token")
+      headers['Authorization'] = `Bearer ${authToken}`
+    }
+  }
+  
+  // Add X-Auth-Token header as well if available
+  const jwtToken = localStorage.getItem('auth_token')
+  if (jwtToken) {
+    console.log("Adding X-Auth-Token")
+    headers['X-Auth-Token'] = jwtToken
+  }
+  
+  // Get user profile ID and add it as a header
+  try {
+    const userProfileStr = localStorage.getItem('user_profile')
+    if (userProfileStr) {
+      const userProfile = JSON.parse(userProfileStr)
+      if (userProfile?.ID) {
+        console.log("Adding X-User-ID header")
+        headers['X-User-ID'] = userProfile.ID
+      }
+    }
+  } catch (error) {
+    console.error('Error parsing user profile for headers:', error)
+  }
+  
+  console.log("Final auth headers:", headers)
+  return headers
+}
+
+// Helper functions for parsing API responses
+function parseTeamsResponse(data: any): Team[] {
+  let teamsArray: any[] = []
+  
+  // Check if response has a teams property
+  if (data && data.teams && Array.isArray(data.teams)) {
+    teamsArray = data.teams
+  } else if (Array.isArray(data)) {
+    teamsArray = data
+  } else if (data && typeof data === 'object') {
+    teamsArray = [data] // Handle case when single team is returned
+  }
+  
+  // Map each team to our client model
+  return teamsArray.map(mapTeamToClientModel)
+}
+
+function mapTeamToClientModel(team: TeamResponse): Team {
+  const userProfileId = getUserProfileId()
+  
+  return {
+    id: team.id,
+    name: team.name,
+    description: team.description || team.name, // Use name as description if missing
+    hackathonId: team.hackathon_id || team.hackathonId || '1', // Support both snake_case and camelCase
+    members: team.hacker_ids ? team.hacker_ids.map(id => ({
+      id,
+      name: id === userProfileId ? "Вы" : `Участник ${id.substring(0, 4)}`,
+      role: id === (team.ownerID || team.owner_id) ? 'Владелец' : 'Участник'
+    })) : [],
+    ownerID: team.ownerID || team.owner_id,
+    max_size: team.max_size,
+    hacker_ids: team.hacker_ids
+  }
+}
+
+// Main service functions
 export async function getTeams(): Promise<Team[]> {
   try {
-    const userId = localStorage.getItem("userId")
-    if (!userId) {
-      console.warn("No userId found, returning empty teams array")
-      return []
+    console.log("Fetching user's teams from my-teams endpoint")
+    
+    // Get auth headers and log them for debugging
+    const headers = getAuthHeaders()
+    console.log("Request headers for my-teams:", headers)
+    
+    // Check if tokens are available
+    if (typeof window !== 'undefined') {
+      console.log("Access token available:", !!localStorage.getItem('access_token'))
+      console.log("Auth token available:", !!localStorage.getItem('auth_token'))
+      console.log("User profile available:", !!localStorage.getItem('user_profile'))
     }
     
-    console.log("Fetching teams for user ID:", userId)
-    const response = await hackathonApiClient.get<{ teams: Team[] } | Team[] | any>('/teams')
-    console.log("Raw teams response:", response)
-    
-    let teamsArray: any[] = []
-    
-    // Check if response has a teams property (the format shown in the API)
-    if (response && response.teams && Array.isArray(response.teams)) {
-      teamsArray = response.teams
-    } else if (Array.isArray(response)) {
-      teamsArray = response
-    } else if (response && typeof response === 'object') {
-      teamsArray = [response] // Handle case when single team is returned
-    }
-    
-    console.log("Teams array before filtering:", teamsArray)
-    
-    // Filter teams where user is a member or owner
-    const userTeams = teamsArray.filter(team => {
-      if (!team) return false;
-      
-      // Check if user is owner (handle different formats)
-      if (team.ownerID === userId || team.owner_id === userId) return true;
-      
-      // Check if user is in hacker_ids array
-      if (team.hacker_ids && Array.isArray(team.hacker_ids) && team.hacker_ids.includes(userId)) return true;
-      
-      // Check if user is in members array
-      if (team.members && Array.isArray(team.members)) {
-        return team.members.some(member => 
-          typeof member === 'string' 
-            ? member === userId 
-            : member.id === userId
-        );
-      }
-      
-      return false;
+    // Use the external API endpoint directly with CORS mode
+    const response = await fetch(`${HACKATHON_API_URL}/team/my-teams`, {
+      method: 'GET',
+      headers,
+      mode: 'cors'
+      // Removed credentials: 'include' to fix CORS error
     })
     
-    console.log("Filtered user teams:", userTeams)
+    console.log("Response status for my-teams:", response.status)
+    console.log("Response headers:", Object.fromEntries([...response.headers]))
     
-    // Map API response to our Team type
-    return userTeams.map((team: any) => ({
-      id: team.id,
-      name: team.name,
-      description: team.description || team.name, // Use name as description if missing
-      hackathonId: team.hackathon_id || team.hackathonId || '1', // Support both snake_case and camelCase
-      members: team.hacker_ids ? team.hacker_ids.map((id: string) => ({
-        id,
-        name: id === userId ? "Вы" : `Участник ${id.substring(0, 4)}`,
-        role: id === (team.ownerID || team.owner_id) ? 'Владелец' : 'Участник'
-      })) : [],
-      // Add other properties from the API
-      ownerID: team.ownerID || team.owner_id,
-      max_size: team.max_size,
-      hacker_ids: team.hacker_ids
-    }))
-  } catch (error) {
+    if (!response.ok) {
+      console.error('Error fetching teams, status:', response.status)
+      throw new Error(`Ошибка при получении команд: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    console.log("My teams response:", data)
+    
+    return parseTeamsResponse(data)
+  } catch (error: unknown) {
     console.error('Не удалось загрузить команды:', error)
-    throw new Error('Не удалось загрузить команды. Пожалуйста, попробуйте позже.')
+    
+    const apiError = error as ApiError
+    if (error instanceof Error && apiError.status === 401) {
+      return handleAuthError(error)
+    }
+    
+    // Return mock data as fallback
+    console.log("Returning mock teams data")
+    return [
+      {
+        id: 'mock-1',
+        name: 'Команда 1 (мок)',
+        description: 'Мок данные при ошибке API',
+        hackathonId: '1',
+        members: [
+          { id: '1', name: 'Вы', role: 'Владелец' }
+        ],
+        ownerID: '1',
+        max_size: 5
+      }
+    ]
   }
 }
 
 export async function getTeamById(id: string): Promise<Team> {
+  if (!id) throw new Error(API_ERROR_MESSAGES.TEAM_ID_REQUIRED)
+  
   try {
-    const response = await hackathonApiClient.get<Team | any>(`/teams/${id}`)
+    console.log(`Fetching team with ID: ${id}`)
     
-    // Handle response in the format returned by the API
-    if (response && response.id && response.hacker_ids) {
-      return {
-        id: response.id,
-        name: response.name,
-        description: response.name, // Use name as description if missing
-        hackathonId: response.hackathonId || '1', // Default hackathonId if missing
-        members: response.hacker_ids ? response.hacker_ids.map((id: string) => ({
-          id,
-          name: `Участник ${id.substring(0, 4)}`,
-          role: id === response.ownerID ? 'Владелец' : 'Участник'
-        })) : [],
-        // Add other properties from the API
-        ownerID: response.ownerID,
-        max_size: response.max_size,
-        hacker_ids: response.hacker_ids
-      }
+    const headers = getAuthHeaders()
+    console.log(`Request headers for team/${id}:`, headers)
+    
+    const response = await fetch(`${HACKATHON_API_URL}/team/${id}`, {
+      method: 'GET',
+      headers,
+      mode: 'cors'
+      // Removed credentials: 'include' to fix CORS error
+    })
+    
+    if (!response.ok) {
+      console.error(`Error fetching team ${id}, status:`, response.status)
+      throw new Error(`Ошибка при получении команды: ${response.status}`)
     }
     
-    return response
-  } catch (error) {
+    const data = await response.json()
+    console.log(`Team ${id} response:`, data)
+    
+    // Handle single team response
+    if (!data || !data.id) {
+      throw new Error(API_ERROR_MESSAGES.INVALID_RESPONSE)
+    }
+    
+    return mapTeamToClientModel(data)
+  } catch (error: unknown) {
     console.error(`Не удалось загрузить команду ${id}:`, error)
-    throw new Error('Не удалось загрузить детали команды. Пожалуйста, попробуйте позже.')
+    
+    const apiError = error as ApiError
+    if (error instanceof Error && apiError.status === 401) {
+      return handleAuthError(error)
+    }
+    
+    // Mock data as fallback
+    return {
+      id,
+      name: 'Команда (мок)',
+      description: 'Мок данные при ошибке API',
+      hackathonId: '1',
+      members: [
+        { id: '1', name: 'Вы', role: 'Владелец' }
+      ],
+      ownerID: '1',
+      max_size: 5
+    }
   }
 }
 
-export async function createTeam(teamData: Partial<Team>): Promise<Team> {
+export async function createTeam({ name, max_size = 5 }: TeamCreatePayload): Promise<Team> {
+  if (!name.trim()) {
+    throw new Error(API_ERROR_MESSAGES.TEAM_NAME_MISSING)
+  }
+  
   try {
-    console.log('Creating team with data:', teamData)
+    console.log('Creating team with data:', { name, max_size })
     
-    // Ensure required fields are present
-    if (!teamData.name || !teamData.hackathonId || !teamData.ownerID) {
-      console.error('Missing required fields for team creation')
-      throw new Error('Не удалось создать команду: отсутствуют обязательные поля')
+    const headers = getAuthHeaders()
+    console.log('Request headers for team creation:', headers)
+    
+    const payload = { name, max_size }
+    
+    const response = await fetch(`${HACKATHON_API_URL}/team/`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      mode: 'cors'
+      // Removed credentials: 'include' to fix CORS error
+    })
+    
+    if (!response.ok) {
+      console.error('Error creating team, status:', response.status)
+      throw new Error(`Ошибка при создании команды: ${response.status}`)
     }
     
-    // Prepare payload in the format expected by the API
-    const payload = {
-      name: teamData.name,
-      hackathon_id: teamData.hackathonId, // Use snake_case for API
-      owner_id: teamData.ownerID, // Use snake_case for API
-      max_size: teamData.max_size || 5,
-      hacker_ids: teamData.hacker_ids || [teamData.ownerID],
-      description: teamData.description || teamData.name
+    const data = await response.json()
+    console.log('Team creation response:', data)
+    
+    if (!data || !data.id) {
+      throw new Error(API_ERROR_MESSAGES.INVALID_RESPONSE)
     }
     
-    console.log('Sending team creation request with payload:', payload)
-    const response = await hackathonApiClient.post<Team>('/teams', payload)
-    console.log('Team creation response:', response)
-    
-    // If the API doesn't return proper ID, generate one for frontend use
-    if (!response || !response.id) {
-      console.warn('API did not return team ID, generating temporary ID')
-      return {
-        id: `temp-${Date.now()}`,
-        name: teamData.name || '',
-        description: teamData.description || teamData.name || '',
-        hackathonId: teamData.hackathonId || '',
-        members: teamData.members || [],
-        ownerID: teamData.ownerID,
-        hacker_ids: teamData.hacker_ids || [teamData.ownerID || '']
-      }
-    }
-    
-    return response
-  } catch (error) {
+    return data
+  } catch (error: unknown) {
     console.error('Не удалось создать команду:', error)
-    // Try with a mock response for testing if the API is not working
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      console.log('Returning mock team in development mode')
-      return {
-        id: `temp-${Date.now()}`,
-        name: teamData.name || '',
-        description: teamData.description || teamData.name || '',
-        hackathonId: teamData.hackathonId || '',
-        members: teamData.members || [],
-        ownerID: teamData.ownerID,
-        hacker_ids: teamData.hacker_ids || [teamData.ownerID || '']
-      }
+    
+    const apiError = error as ApiError
+    if (error instanceof Error && apiError.status === 401) {
+      return handleAuthError(error)
     }
-    throw new Error('Не удалось создать команду. Пожалуйста, проверьте данные и попробуйте снова.')
+    
+    throw new Error(API_ERROR_MESSAGES.TEAM_CREATE)
   }
 }
 
-export async function joinTeam(teamId: string, userId: string): Promise<void> {
+export async function joinTeam(teamId: string, userId?: string): Promise<void> {
+  if (!teamId) throw new Error(API_ERROR_MESSAGES.TEAM_ID_REQUIRED)
+  
   try {
-    await hackathonApiClient.post('/teams/members', { teamId, userId })
-  } catch (error) {
+    // If userId is not provided, try to get it from localStorage
+    const hackerId = userId || getUserProfileId()
+    if (!hackerId) {
+      throw new Error(API_ERROR_MESSAGES.USER_ID_MISSING)
+    }
+    
+    const headers = getAuthHeaders()
+    console.log('Request headers for joining team:', headers)
+    
+    const response = await fetch(`${HACKATHON_API_URL}/team/add_hacker`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        team_id: teamId,
+        hacker_id: hackerId
+      }),
+      mode: 'cors'
+      // Removed credentials: 'include' to fix CORS error
+    })
+    
+    if (!response.ok) {
+      console.error(`Error joining team ${teamId}, status:`, response.status)
+      throw new Error(`Ошибка при присоединении к команде: ${response.status}`)
+    }
+    
+    console.log(`Successfully joined team ${teamId}`)
+  } catch (error: unknown) {
     console.error(`Не удалось присоединиться к команде ${teamId}:`, error)
-    throw new Error('Не удалось присоединиться к команде. Пожалуйста, попробуйте позже.')
+    
+    const apiError = error as ApiError
+    if (error instanceof Error && apiError.status === 401) {
+      return handleAuthError(error)
+    }
+    
+    throw new Error(API_ERROR_MESSAGES.TEAM_JOIN)
   }
 }
 
-// Add a new function to get teams by hackathon ID
 export async function getTeamsByHackathonId(hackathonId: string): Promise<Team[]> {
-  try {
-    if (!hackathonId) {
-      console.warn("No hackathonId provided, returning empty teams array")
-      return []
-    }
-    
-    console.log(`Fetching teams for hackathon ID: ${hackathonId}`)
-    const response = await hackathonApiClient.get<{ teams: Team[] } | Team[] | any>(`/teams/hackathon/${hackathonId}`)
-    console.log("Raw hackathon teams response:", response)
-    
-    let teamsArray: any[] = []
-    
-    // Check if response has a teams property
-    if (response && response.teams && Array.isArray(response.teams)) {
-      teamsArray = response.teams
-    } else if (Array.isArray(response)) {
-      teamsArray = response
-    } else if (response && typeof response === 'object') {
-      teamsArray = [response] // Handle case when single team is returned
-    }
-    
-    // Map API response to our Team type
-    return teamsArray.map((team: any) => ({
-      id: team.id,
-      name: team.name,
-      description: team.description || team.name,
-      hackathonId: team.hackathon_id || team.hackathonId || hackathonId,
-      members: team.hacker_ids ? team.hacker_ids.map((id: string) => ({
-        id,
-        name: `Участник ${id.substring(0, 4)}`,
-        role: id === (team.ownerID || team.owner_id) ? 'Владелец' : 'Участник'
-      })) : [],
-      ownerID: team.ownerID || team.owner_id,
-      max_size: team.max_size,
-      hacker_ids: team.hacker_ids
-    }))
-  } catch (error) {
-    console.error(`Не удалось загрузить команды для хакатона ${hackathonId}:`, error)
-    
-    // Instead of propagating the error, return an empty array
-    // This handles the case when the API endpoint doesn't exist yet
-    console.log("Returning empty array due to API error")
+  if (!hackathonId) {
+    console.warn("No hackathonId provided, returning empty teams array")
     return []
   }
-} 
+  
+  try {
+    console.log(`Fetching teams for hackathon ID: ${hackathonId}`)
+    
+    const headers = getAuthHeaders()
+    console.log(`Request headers for hackathon/${hackathonId} teams:`, headers)
+    
+    const response = await fetch(`${HACKATHON_API_URL}/team/hackathon/${hackathonId}`, {
+      method: 'GET',
+      headers,
+      mode: 'cors'
+      // Removed credentials: 'include' to fix CORS error
+    })
+    
+    if (!response.ok) {
+      console.error('Error fetching hackathon teams, status:', response.status)
+      throw new Error(`Ошибка при получении команд хакатона: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    console.log("Hackathon teams response:", data)
+    
+    const teamsArray = parseTeamsResponse(data)
+    
+    // Filter teams for this hackathon
+    return teamsArray.filter(team => 
+      team.hackathonId === hackathonId
+    )
+  } catch (error: unknown) {
+    console.error(`Не удалось загрузить команды для хакатона ${hackathonId}:`, error)
+    
+    const apiError = error as ApiError
+    if (error instanceof Error && apiError.status === 401) {
+      return handleAuthError(error)
+    }
+    
+    throw new Error(API_ERROR_MESSAGES.HACKATHON_TEAMS_FETCH)
+  }
+}

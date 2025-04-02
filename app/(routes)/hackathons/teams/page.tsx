@@ -197,7 +197,7 @@ export default function HackathonTeamsPage() {
               
               return (
                 <Link
-                  href={`/teams/${team.id}`}
+                  href={`/hackathons/teams/${team.id}`}
                   key={team.id}
                   className="block bg-white shadow-sm hover:shadow-md rounded-lg overflow-hidden transition-shadow"
                 >

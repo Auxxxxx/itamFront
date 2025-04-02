@@ -73,30 +73,12 @@ export default function ProfilePage() {
     }
 
     try {
+      // First check if profile data is in localStorage
       const token = localStorage.getItem('auth_token')
+      if (!token) return null
       
-      // Проверяем наличие локальных данных
-      const localProfileData = localStorage.getItem('user_profile')
-      if (localProfileData) {
-        try {
-          const localProfile = JSON.parse(localProfileData)
-          setProfile(localProfile)
-          // Добавляем достижения (пока в локальном варианте)
-          if (!localProfile.Achievements) {
-            localProfile.Achievements = mockAchievements
-            setProfile(localProfile)
-          }
-          setHasLocalChanges(true)
-          setProfileLoading(false)
-          return
-        } catch (parseError) {
-          console.error('Error parsing local profile:', parseError)
-          localStorage.removeItem('user_profile')
-        }
-      }
-      
-      // Если нет локальных данных или произошла ошибка, загружаем с сервера
-      const response = await fetch('http://45.10.41.58:8080/api/me', {
+      // Call API to get latest user data
+      const response = await fetch('http://45.10.41.58:8000/api/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -1,45 +1,35 @@
-# Hackathon Team Management Platform
+# ITAM Front
 
-A frontend application for managing hackathons and teams, designed to be extensible for future services.
-
-## Features
-
-- User login with user ID
-- Browse available hackathons
-- View hackathon details
-- Create teams for hackathons
-- View your teams
-- Manage team members
-
-## Technology Stack
-
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: Shadcn UI
-- **Form Handling**: React Hook Form with Zod validation
-- **API Integration**: Built-in Next.js API routes (for development)
+This is the frontend application for the ITAM platform, providing interfaces for hackathons, events, courses, and mentorship services.
 
 ## Project Structure
 
+The application is built with Next.js 14 using the App Router architecture:
+
 ```
-/app
-  /api                 - API routes for development
-    /hackathons        - Hackathon-related endpoints
-    /teams             - Team-related endpoints
-  /(routes)            - Application routes
-    /dashboard         - Dashboard page
-    /hackathons        - Hackathon listing and details
-    /teams             - Team listing and details
-  /components          - React components
-    /hackathons        - Hackathon-specific components
-    /teams             - Team-specific components
-    /ui                - Reusable UI components
-  /lib                 - Shared utilities and services
-    /services          - API service functions
-    /types             - TypeScript type definitions
-    /utils             - Utility functions
+app/
+├── (routes)/            # Route-specific page components
+│   ├── hackathons/      # Hackathon-related pages
+│   ├── events/          # Event-related pages
+│   ├── courses/         # Course-related pages
+│   └── mentorship/      # Mentorship-related pages
+├── components/          # Reusable UI components
+├── lib/                 # Utility functions, services, and types
+│   ├── services/        # API service modules
+│   └── types/           # TypeScript type definitions
+└── types/               # Global type definitions
 ```
+
+## API Structure
+
+The application directly interfaces with multiple backend services:
+
+- Hackathons API: `http://45.10.41.58:8000` 
+- Events API: `http://45.10.41.58:8002`
+- Mentorship API: `http://45.10.41.58:8001`
+- Auth API: `http://45.10.41.58:8080`
+
+Each service module makes direct API calls to these endpoints without using proxy API routes.
 
 ## Getting Started
 
@@ -47,47 +37,95 @@ A frontend application for managing hackathons and teams, designed to be extensi
 
 - Node.js 18 or higher
 - npm or yarn
+- Docker and Docker Compose (for containerized development)
 
-### Installation
+### Development
 
 1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+### Docker Development
+
+To run the application using Docker:
+
 ```bash
-git clone https://github.com/yourusername/hackathon-platform.git
-cd hackathon-platform
+docker compose up -d
 ```
 
-2. Install dependencies
+To restart after changes:
+
 ```bash
-npm install
-# or
-yarn
+docker compose down
+docker compose up -d
 ```
 
-3. Run the development server
-```bash
-npm run dev
-# or
-yarn dev
-```
+## Code Style Guidelines
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+### TypeScript & React
 
-## API Integration
+- Use functional components with TypeScript interfaces
+- Follow functional, declarative programming patterns
+- Use descriptive variable names with auxiliary verbs (e.g., `isLoading`)
+- Prefer named exports for components
+- Use lowercase with dashes for directories (e.g., `components/auth-wizard`)
 
-The project currently uses mock data through Next.js API routes. In a production environment, you would replace the API calls in the service files to point to your actual backend service:
+### File Structure
 
-- `/app/lib/services/hackathon-service.ts`
-- `/app/lib/services/team-service.ts`
+Each file follows a consistent structure:
 
-## Extensibility
+1. Imports (grouped by external, internal, and relative)
+2. Constants (including API URLs, error messages)
+3. Type definitions and interfaces
+4. Helper functions
+5. Main exports (components, functions, etc.)
 
-The application is designed to be extensible for future services:
+### API Communication
 
-1. **Service Modules**: Each service has its own directory under `/app/lib/services`
-2. **Type Definitions**: Clear type definitions in `/app/lib/types`
-3. **API Client**: Generic API client in `/app/lib/services/api-client.ts` can be configured for different services
-4. **Component Structure**: Components are organized by domain, making it easy to add new features
+- Make direct calls to external APIs with full URLs
+- Define API base URLs as constants
+- Include proper headers for authentication
+- Handle CORS issues on the backend side
+- Provide fallback data when API requests fail
 
-## License
+### Component Style
 
-MIT 
+- Use function declarations for components
+- Place static content variables outside render functions
+- Use JSDoc comments for props and complex functions
+- Follow a mobile-first approach for responsive design
+
+### Error Handling
+
+- Handle errors at the beginning of functions using early returns
+- Implement proper error boundaries
+- Provide user-friendly error messages
+- Log errors for debugging purposes
+
+## Authentication
+
+User authentication uses JWT tokens:
+
+- Access token is stored in localStorage as `access_token`
+- User profile is stored in localStorage as `user_profile`
+- The user ID is accessed via `user_profile.ID`
+
+## Data Handling
+
+- Mock data is available as fallback when API requests fail
+- All API requests should exactly match the API documentation
+- API request formats should follow the documentation for each service
+
+## Contributing
+
+Please refer to the README.md files in each directory for specific guidelines about different parts of the application. 
