@@ -46,7 +46,7 @@ export function useAuth() {
         }
       }
 
-      const response = await fetch('http://45.10.41.58:8000/api/me', {
+      const response = await fetch('http://45.10.41.58:8080/api/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         },

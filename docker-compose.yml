@@ -2,7 +2,7 @@ version: '3'
 
 services:
   app:
-    image: auxxxxx/itam_platform202504030148
+    image: auxxxxx/itam_platform202504030232
     ports:
       - "3000:3000"
     volumes:

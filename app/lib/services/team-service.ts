@@ -272,3 +272,53 @@ export async function getTeamById(id: string): Promise<Team> {
     }
   }
 }
+
+export async function createTeam(payload: { name: string; ownerID?: string; max_size?: number }): Promise<Team> {
+  if (!payload.name) throw new Error(API_ERROR_MESSAGES.TEAM_NAME_MISSING);
+  
+  try {
+    console.log('[Team Service] Creating team with payload:', payload);
+    
+    const userId = getUserProfileId();
+    if (!userId && !payload.ownerID) {
+      throw new Error(API_ERROR_MESSAGES.USER_ID_MISSING);
+    }
+    
+    const headers = getAuthHeaders();
+    console.log('[Team Service] Request headers for team creation:', headers);
+    
+    // Prepare payload with required structure
+    const requestPayload: TeamCreatePayload = {
+      name: payload.name,
+      max_size: payload.max_size || 5 // Default max size
+    };
+    
+    const response = await fetch(`${HACKATHON_API_URL}/team`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestPayload),
+      mode: 'cors'
+    });
+    
+    console.log('[Team Service] Team creation response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('[Team Service] Error creating team, status:', response.status);
+      throw new ApiError(`Failed to create team: ${response.status}`, response.status);
+    }
+    
+    const data = await response.json();
+    console.log('[Team Service] Team creation response:', data);
+    
+    return mapTeamToClientModel(data);
+  } catch (error: unknown) {
+    console.error('[Team Service] Failed to create team:', error);
+    
+    const apiError = error as ApiError;
+    if (error instanceof Error && apiError.status === 401) {
+      return handleAuthError(error);
+    }
+    
+    throw new Error(API_ERROR_MESSAGES.TEAM_CREATE);
+  }
+}

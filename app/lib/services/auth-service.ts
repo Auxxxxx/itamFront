@@ -213,7 +213,7 @@ export async function getCurrentUser(token: string): Promise<AuthResponse> {
 
     console.log('[Auth Service] Получение данных текущего пользователя')
 
-    const response = await fetch(`${AUTH_API_URL}/api/users/me`, {
+    const response = await fetch(`${AUTH_API_URL}/api/me`, {
       method: 'GET',
       headers: getAuthHeaders(token),
       mode: 'cors',
