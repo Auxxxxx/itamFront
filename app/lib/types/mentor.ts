@@ -12,6 +12,19 @@ export interface Mentor {
   lastUpdate: string
 }
 
+// Интерфейс для представления данных о менторах из API
+export interface ApiMentor {
+  id: string
+  telegram_id: string
+  name: string
+  info: string
+}
+
+// Интерфейс для ответа API со списком менторов
+export interface ApiMentorsResponse {
+  mentors: ApiMentor[]
+}
+
 export interface MentorTime {
   id: number
   mentorId: number

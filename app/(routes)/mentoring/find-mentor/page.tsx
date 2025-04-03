@@ -16,11 +16,19 @@ export default function FindMentorPage() {
       try {
         setIsLoading(true)
         const data = await getMentors()
-        setMentors(data)
-        setError(null)
+        
+        // Проверяем, что data - это массив, иначе используем пустой массив
+        if (data && Array.isArray(data)) {
+          setMentors(data)
+        } else {
+          console.error('[FindMentorPage] getMentors returned non-array data:', data)
+          setMentors([])
+          setError('Некорректные данные от сервера. Пожалуйста, попробуйте позже.')
+        }
       } catch (err) {
+        console.error('[FindMentorPage] Error loading mentors:', err)
+        setMentors([]) // Устанавливаем пустой массив, чтобы избежать ошибок при фильтрации
         setError('Не удалось загрузить список менторов')
-        console.error(err)
       } finally {
         setIsLoading(false)
       }
@@ -29,13 +37,18 @@ export default function FindMentorPage() {
     loadMentors()
   }, [])
   
-  const filteredMentors = mentors.filter((mentor: Mentor) => 
-    mentor.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    mentor.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (mentor.expertise?.some((exp: string) => 
-      exp.toLowerCase().includes(searchTerm.toLowerCase())
-    ))
-  )
+  // Проверяем, что mentors - это массив перед вызовом filter
+  const filteredMentors = Array.isArray(mentors) 
+    ? mentors.filter((mentor: Mentor) => 
+        mentor && 
+        (mentor.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         mentor.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         (Array.isArray(mentor.expertise) && mentor.expertise.some((exp: string) => 
+           exp?.toLowerCase().includes(searchTerm.toLowerCase())
+         ))
+        )
+      )
+    : [];
   
   return (
     <div className="container mx-auto px-4 py-8">
@@ -82,7 +95,7 @@ export default function FindMentorPage() {
                     <img src={mentor.avatar} alt={`${mentor.firstName} ${mentor.lastName}`} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-blue-100 text-blue-600 text-xl font-bold">
-                      {mentor.firstName[0]}{mentor.lastName[0]}
+                      {mentor.firstName?.[0]}{mentor.lastName?.[0]}
                     </div>
                   )}
                 </div>
