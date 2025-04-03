@@ -4,6 +4,7 @@ import "./globals.css"
 import { Navigation } from "./components/ui/navigation"
 import { ServiceSelector } from "./components/ui/service-selector"
 import { HackathonTabs } from "./components/ui/hackathon-tabs"
+import { Toaster } from "./components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] })
 
@@ -26,6 +27,7 @@ export default function RootLayout({
         <main className="flex-grow">
           {children}
         </main>
+        <Toaster />
       </body>
     </html>
   )
